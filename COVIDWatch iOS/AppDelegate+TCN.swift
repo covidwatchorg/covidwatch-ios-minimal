@@ -58,6 +58,7 @@ extension AppDelegate {
                     
                     let temporaryContactNumber = self.currentTemporaryContactKey.temporaryContactNumber
                     
+                    self.previousTemporaryContactKey = self.currentTemporaryContactKey
                     // Ratched the key so, we will get a new temporary contact number the next time
                     if let newTemporaryContactKey = self.currentTemporaryContactKey.ratchet() {
                         self.currentTemporaryContactKey = newTemporaryContactKey
@@ -67,8 +68,8 @@ extension AppDelegate {
                     
             }, tcnFinder: { (data) in
                 
-                // TODO: Check comparison with previous TCN also
-                if data != self.currentTemporaryContactKey.temporaryContactNumber.bytes {
+                if data != self.currentTemporaryContactKey.temporaryContactNumber.bytes &&
+                    data != self.previousTemporaryContactKey?.temporaryContactNumber.bytes {
                     self.logFoundTemporaryContactNumber(with: data)
                 }
                 
