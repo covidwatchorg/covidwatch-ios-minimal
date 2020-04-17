@@ -501,7 +501,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Set the build number to the count of Git commits\nbuildNumber=$(git rev-list --count HEAD)\ninfoPlistPath=\"${TARGET_BUILD_DIR}/${EXECUTABLE_FOLDER_PATH}/Info.plist\"\nPLISTBUDDY=\"/usr/libexec/PlistBuddy\"\n$PLISTBUDDY -c \"Set :CFBundleVersion $buildNumber\" \"${infoPlistPath}\"\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n# Set the build number to the count of Git commits\nbuildNumber=$(git rev-list --count HEAD)\ninfoPlistPath=\"${TARGET_BUILD_DIR}/${EXECUTABLE_FOLDER_PATH}/Info.plist\"\nPLISTBUDDY=\"/usr/libexec/PlistBuddy\"\n$PLISTBUDDY -c \"Set :CFBundleVersion $(( $buildNumber + 63 ))\" \"${infoPlistPath}\"\n";
 		};
 		7F1803136CC3C3E485586BD6 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
