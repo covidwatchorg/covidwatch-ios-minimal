@@ -6,6 +6,7 @@ import Foundation
 import TCNClient
 import CryptoKit
 import os.log
+import CoreData
 
 extension AppDelegate {
     
@@ -66,11 +67,11 @@ extension AppDelegate {
                     
                     return temporaryContactNumber.bytes
                     
-            }, tcnFinder: { (data) in
+            }, tcnFinder: { (data, estimatedDistance) in
                 
                 if data != self.currentTemporaryContactKey.temporaryContactNumber.bytes &&
                     data != self.previousTemporaryContactKey?.temporaryContactNumber.bytes {
-                    self.logFoundTemporaryContactNumber(with: data)
+                    self.logFoundTemporaryContactNumber(with: data, estimatedDistance: estimatedDistance)
                 }
                 
             }, errorHandler: { (error) in
@@ -80,13 +81,35 @@ extension AppDelegate {
         )
     }
     
-    func logFoundTemporaryContactNumber(with bytes: Data) {
-        DispatchQueue.main.async {
-            let context = PersistentContainer.shared.viewContext
-            let temporaryContactNumber = TemporaryContactNumber(context: context)
-            temporaryContactNumber.bytes = bytes
-            temporaryContactNumber.foundDate = Date()
-            try? context.save()
+    func logFoundTemporaryContactNumber(with bytes: Data, estimatedDistance: Double?) {
+        let now = Date()
+        
+        let context = PersistentContainer.shared.newBackgroundContext()
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        context.automaticallyMergesChangesFromParent = true
+        context.perform {
+            do {
+                let request: NSFetchRequest<TemporaryContactNumber> = TemporaryContactNumber.fetchRequest()
+                request.predicate = NSPredicate(format: "bytes == %@", bytes as CVarArg)
+                request.fetchLimit = 1
+                let results = try context.fetch(request)
+                var temporaryContactNumber: TemporaryContactNumber! = results.first
+                if temporaryContactNumber == nil {
+                    temporaryContactNumber = TemporaryContactNumber(context: context)
+                    temporaryContactNumber.bytes = bytes                    
+                }
+                temporaryContactNumber.lastSeenDate = now
+                if let estimatedDistance = estimatedDistance {
+                    let currentEstimatedDistance: Double = temporaryContactNumber.closestEstimatedDistanceMeters?.doubleValue ?? .infinity
+                    if estimatedDistance < currentEstimatedDistance {
+                        temporaryContactNumber.closestEstimatedDistanceMeters = NSNumber(value: estimatedDistance)
+                    }
+                }
+                try context.save()
+            }
+            catch {
+                os_log("Logging TCN failed: %@", log: .app, type: .error, error as CVarArg)
+            }
         }
     }
         

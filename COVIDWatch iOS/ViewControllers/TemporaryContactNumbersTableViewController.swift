@@ -6,6 +6,7 @@
 import UIKit
 import CoreData
 import os.log
+import MapKit
 
 class TemporaryContactNumbersTableViewController: UITableViewController, NSFetchedResultsControllerDelegate {
     
@@ -149,6 +150,20 @@ class TemporaryContactNumbersTableViewController: UITableViewController, NSFetch
         return dateFormatter
     }()
     
+    lazy var durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = .pad
+        return formatter
+    }()
+    
+    lazy var distanceFormatter: MKDistanceFormatter = {
+        let formatter = MKDistanceFormatter()
+        formatter.unitStyle = .abbreviated
+        return formatter
+    }()
+    
     // MARK: - Table view data source
     
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -161,20 +176,35 @@ class TemporaryContactNumbersTableViewController: UITableViewController, NSFetch
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TemporaryContactRow", for: indexPath)
-        if let temporaryContactNumber = self.fetchedResultsController?.object(at: indexPath) {
-            cell.textLabel?.text = self.dateFormatter.string(from: temporaryContactNumber.foundDate!)
-            cell.detailTextLabel?.text = temporaryContactNumber.bytes?.base64EncodedString()
-            cell.backgroundColor = temporaryContactNumber.wasPotentiallyInfectious ? .systemRed : .systemGreen            
-        }
+        self.tableView(tableView, configure: cell, forRowAt: indexPath)
         return cell
     }
     
-    // MARK: - NSFetchedResultsControllerDelegate
-    
-    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        self.tableView.beginUpdates()
+    func tableView(_ tableView: UITableView, configure cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if let temporaryContactNumber = self.fetchedResultsController?.object(at: indexPath) {
+            if let foundDate = temporaryContactNumber.foundDate,
+                let lastSeenDate = temporaryContactNumber.lastSeenDate {
+                var string = [
+                    self.dateFormatter.string(from: foundDate),
+                    self.durationFormatter.string(from: lastSeenDate.timeIntervalSince(foundDate)) ?? ""
+                    ].joined(separator: " for ")
+                if let closestEstimatedDistanceMeters = temporaryContactNumber.closestEstimatedDistanceMeters?.doubleValue {
+                    string += " at " + String(format: "%.1f m (closest)", closestEstimatedDistanceMeters)                    
+                }
+                cell.textLabel?.text = string
+            }
+            cell.detailTextLabel?.text = temporaryContactNumber.bytes?.base64EncodedString()
+            cell.backgroundColor = temporaryContactNumber.wasPotentiallyInfectious ? .systemRed : .systemGreen
+        }
     }
     
+    // MARK: - NSFetchedResultsControllerDelegate
+
+    // Commenting this out because it doesn't play well with refreshControl
+//    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+//        self.tableView.beginUpdates()
+//    }
+//
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         switch type {
             case .insert:
@@ -182,17 +212,20 @@ class TemporaryContactNumbersTableViewController: UITableViewController, NSFetch
             case .delete:
                 self.tableView.deleteRows(at: [indexPath!], with: .automatic)
             case .update:
-                self.tableView.reloadRows(at: [indexPath!], with: .automatic)
+                if let cell = self.tableView.cellForRow(at: indexPath!) {
+                    self.tableView(self.tableView, configure: cell, forRowAt: indexPath!)
+            }
             case .move:
                 self.tableView.moveRow(at: indexPath!, to: newIndexPath!)
             @unknown default: ()
         }
     }
-    
-    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        self.tableView.endUpdates()
-        self.configureClearButton()
-    }
+
+    // Commenting this out because it doesn't play well with refreshControl
+//    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+//        self.tableView.endUpdates()
+//        self.configureClearButton()
+//    }
     
     /*
      // MARK: - Navigation
