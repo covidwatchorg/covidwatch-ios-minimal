@@ -16,7 +16,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     
     var tcnBluetoothService: TCNBluetoothService?
-    var previousTemporaryContactKey: TemporaryContactKey?
+    var advertisedTcns = [Data]()
     
     var isTemporaryContactNumberLoggingEnabledObservation: NSKeyValueObservation?
     var isCurrentUserSickObservation: NSKeyValueObservation?

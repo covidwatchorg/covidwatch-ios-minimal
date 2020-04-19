@@ -59,18 +59,21 @@ extension AppDelegate {
                     
                     let temporaryContactNumber = self.currentTemporaryContactKey.temporaryContactNumber
                     
-                    self.previousTemporaryContactKey = self.currentTemporaryContactKey
                     // Ratched the key so, we will get a new temporary contact number the next time
                     if let newTemporaryContactKey = self.currentTemporaryContactKey.ratchet() {
                         self.currentTemporaryContactKey = newTemporaryContactKey
+                    }
+                    
+                    self.advertisedTcns.append(temporaryContactNumber.bytes)
+                    if self.advertisedTcns.count > 1024 {
+                        self.advertisedTcns.removeFirst()
                     }
                     
                     return temporaryContactNumber.bytes
                     
             }, tcnFinder: { (data, estimatedDistance) in
                 
-                if data != self.currentTemporaryContactKey.temporaryContactNumber.bytes &&
-                    data != self.previousTemporaryContactKey?.temporaryContactNumber.bytes {
+                if !self.advertisedTcns.contains(data) {
                     self.logFoundTemporaryContactNumber(with: data, estimatedDistance: estimatedDistance)
                 }
                 
@@ -106,6 +109,7 @@ extension AppDelegate {
                     }
                 }
                 try context.save()
+                os_log("Logged TCN=%@", log: .app, bytes.base64EncodedString())
             }
             catch {
                 os_log("Logging TCN failed: %@", log: .app, type: .error, error as CVarArg)
