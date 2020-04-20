@@ -31,6 +31,8 @@
 	<true/>
 	<key>LocalIP</key>
 	<string></string>
+	<key>NSAllowsLocalNetworking</key>
+	<string>YES</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Allow access to Bluetooth to enable privacy-preserving contact tracing.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
